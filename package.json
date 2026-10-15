@@ -1,0 +1,49 @@
+{
+  "name": "pi-quota-bar",
+  "version": "1.0.0",
+  "description": "One always-visible line showing the real server-side usage of your Claude, Codex, OpenCode Go, OpenDesign, Z.AI and MiniMax subscriptions in pi.",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "quota",
+    "usage",
+    "subscription",
+    "claude",
+    "codex",
+    "opencode",
+    "zai",
+    "minimax"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Atomheart-Father/pi-quota-bar.git"
+  },
+  "files": [
+    "index.ts",
+    "registry.ts",
+    "adapters.ts",
+    "auth.ts",
+    "parsers.ts",
+    "render.ts",
+    "cache.ts",
+    "config.ts",
+    "types.ts",
+    "util.ts",
+    "test",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  }
+}

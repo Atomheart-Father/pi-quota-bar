@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+# Never commit local credentials or caches
+auth.json
+*-cache.json
+quota-bar.json
