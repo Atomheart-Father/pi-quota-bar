@@ -189,10 +189,13 @@ test("detail view reports reasons and counts", () => {
 });
 
 test("redact removes credential-shaped strings", () => {
-  // Fixtures are deliberately not shaped like any real credential prefix.
-  assert.equal(redact("token sk-ant-oat01-FAKEfakeFAKEfake1234 failed").includes("FAKEfakeFAKEfake1234"), false);
-  assert.equal(redact("key user_FAKEfakeFAKEfake1234").includes("FAKEfakeFAKEfake1234"), false);
-  assert.equal(redact("oc_sk_FAKEfakeFAKEfake1234 leaked").includes("FAKEfakeFAKEfake1234"), false);
+  // Obviously-synthetic values: they match the shape redaction targets, but
+  // read as placeholders so no secret scanner mistakes them for a real key.
+  const body = "NOTAREALKEY-placeholder";
+  assert.equal(redact(`token sk-ant-oat01-${body} failed`).includes(body), false);
+  assert.equal(redact(`key user_${body}`).includes(body), false);
+  assert.equal(redact(`oc_sk_${body} leaked`).includes(body), false);
+  assert.equal(redact(`Bearer rt.1.${body}`).includes(body), false);
 });
 
 test("window labels derive from the reported duration", () => {
