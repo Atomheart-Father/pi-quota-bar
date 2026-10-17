@@ -32,6 +32,7 @@ export const DEFAULT_CONFIG: QuotaBarConfig = {
   providers: {
     claude: true,
     codex: true,
+    commandcode: true,
     opencode: true,
     opendesign: true,
     zai: true,
@@ -92,6 +93,7 @@ export function saveConfig(config: QuotaBarConfig): void {
 export const PROVIDER_ORDER: readonly QuotaProviderId[] = [
   "claude",
   "codex",
+  "commandcode",
   "opencode",
   "opendesign",
   "zai",

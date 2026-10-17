@@ -205,3 +205,60 @@ test("window labels derive from the reported duration", () => {
   assert.equal(compactWindowLabel(0), "");
   assert.equal(compactWindowLabel(undefined), "");
 });
+
+const okCommandCode = record({
+  outcome: {
+    kind: "ok",
+    windows: [
+      {
+        label: "5h",
+        nativeLabel: "5h Rolling",
+        usedPercent: 1.6,
+        windowSeconds: H5,
+        resetsAt: Date.now() + 2 * 3600_000,
+        hasCounts: true,
+        usedValue: 0.22,
+        limitValue: 14,
+        isCurrency: true,
+      },
+      {
+        label: "7d",
+        nativeLabel: "Weekly",
+        usedPercent: 14.5,
+        windowSeconds: D7,
+        resetsAt: Date.now() + 6 * 86_400_000,
+        hasCounts: true,
+        usedValue: 5.09,
+        limitValue: 35,
+        isCurrency: true,
+      },
+    ],
+  },
+  fetchedAt: Date.now(),
+});
+
+test("command code renders between codex and opencode", () => {
+  const line = stripAnsi(renderBarLine(build({ claude: okClaude, codex: okCodex, commandcode: okCommandCode }), 0));
+  const order = ["Claude", "Codex", "CMD"].map((label) => line.indexOf(label));
+  assert.ok(order.every((index) => index >= 0), `all labels present in ${line}`);
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "display order is stable");
+});
+
+test("command code uses the CMD label, never CC", () => {
+  const line = stripAnsi(renderBarLine(build({ commandcode: okCommandCode }), 0));
+  assert.match(line, /CMD/);
+  assert.doesNotMatch(line, /\bCC\b/, "CC is reserved to avoid clashing with Claude");
+});
+
+test("command code highlights when the active model is command-code", () => {
+  const active = stripAnsi(renderBarLine(build({ commandcode: okCommandCode }, "command-code"), 0));
+  assert.match(active, /▸ CMD/);
+  const inactive = stripAnsi(renderBarLine(build({ commandcode: okCommandCode }, "anthropic"), 0));
+  assert.doesNotMatch(inactive, /▸ CMD/);
+});
+
+test("command code credit windows keep their counts in the detail view", () => {
+  const text = renderDetail(build({ commandcode: okCommandCode })).map(stripAnsi).join("\n");
+  assert.match(text, /Command Code/, "full label, not the CMD abbreviation");
+  assert.match(text, /0\/14|0\/35/, "credit counts are surfaced");
+});

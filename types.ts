@@ -1,15 +1,13 @@
 /**
  * Shared types for the unified subscription quota bar.
  *
- * Scope: Claude, Codex, OpenCode Go, OpenDesign Go, Z.AI, MiniMax.
- * Command Code / GOAT is deliberately absent — `commandcode-go-for-pi` owns
- * that provider and renders its own `cc-quota` widget. Nothing here reads,
- * queries or renders Command Code.
+ * Scope: Claude, Codex, Command Code, OpenCode Go, OpenDesign Go, Z.AI, MiniMax.
  */
 
 export type QuotaProviderId =
   | "claude"
   | "codex"
+  | "commandcode"
   | "opencode"
   | "opendesign"
   | "zai"

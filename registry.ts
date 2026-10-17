@@ -6,9 +6,6 @@
  * so rendering and its tests never touch credentials or fetch.
  *
  * Adding a subscription = one entry here + one adapter with a matching id.
- *
- * Command Code / GOAT has no entry: `commandcode-go-for-pi` owns that provider
- * and renders its own `cc-quota` widget.
  */
 
 import type { QuotaProviderId } from "./types.ts";
@@ -35,6 +32,14 @@ export const PROVIDER_DESCRIPTORS: readonly ProviderDescriptor[] = [
     label: "Codex",
     longLabel: "ChatGPT / Codex",
     piProviders: ["openai-codex", "openai"],
+  },
+  {
+    id: "commandcode",
+    // "CMD" rather than "CC": in a line that already starts with "Claude",
+    // two C-initials would be unreadable at a glance.
+    label: "CMD",
+    longLabel: "Command Code",
+    piProviders: ["command-code", "commandcode"],
   },
   {
     id: "opencode",

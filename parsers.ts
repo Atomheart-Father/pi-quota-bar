@@ -298,6 +298,54 @@ function nativeMiniMax(data: unknown): BarWindow[] {
   return out;
 }
 
+/**
+ * Command Code: `{ credits, subscription, summary }` assembled by the adapter.
+ *
+ * Shapes (from `/alpha/billing/credits`):
+ *   credits: { monthlyCredits, purchasedCredits, freeCredits }
+ *   windowLimits: { fiveHour: { used, cap, resetAt }, weekly: {…} }
+ *
+ * The window caps are credit amounts, not percentages, so the bar derives a
+ * percentage from used/cap and keeps the counts for `/subs status`.
+ *
+ * The monthly row is deliberately omitted: `monthlyCredits` is the credit
+ * grant, not a spend ceiling, so a "monthly %" would be an invented number.
+ */
+function nativeCommandCode(data: unknown): BarWindow[] {
+  const root = record(data);
+  const limits = record(root?.credits)?.windowLimits;
+  const windowLimits = record(limits) ?? record(record(root?.credits)?.windowLimits);
+  if (!windowLimits) return [];
+
+  const out: BarWindow[] = [];
+  const plan: Array<[string, string, number]> = [
+    ["fiveHour", "5h Rolling", H5],
+    ["weekly", "Weekly", D7],
+  ];
+  for (const [key, nativeLabel, seconds] of plan) {
+    const entry = record(windowLimits[key]);
+    if (!entry) continue;
+    const used = num(entry.used);
+    const cap = num(entry.cap);
+    if (used === undefined || cap === undefined) continue;
+    // A zero cap with zero use is an unconfigured window, not a 0% bar.
+    if (used === 0 && cap === 0) continue;
+    const resetsAt = epochMs(entry.resetAt);
+    const limited = entry.exceeded === true || (cap > 0 && used >= cap);
+    out.push({
+      label: compactWindowLabel(seconds),
+      nativeLabel,
+      usedPercent: clampPercent(cap > 0 ? (used / cap) * 100 : used > 0 ? 100 : 0),
+      windowSeconds: seconds,
+      ...(resetsAt !== undefined && resetsAt > 0 ? { resetsAt } : {}),
+      ...(cap > 0 ? { hasCounts: true, usedValue: used, limitValue: cap } : {}),
+      ...(limited ? { limited: true } : {}),
+      isCurrency: true,
+    });
+  }
+  return out;
+}
+
 function durationSeconds(start: unknown, end: unknown): number | undefined {
   const from = num(start);
   const to = num(end);
@@ -312,6 +360,7 @@ function durationSeconds(start: unknown, end: unknown): number | undefined {
 const NATIVE: Record<QuotaProviderId, (data: unknown) => BarWindow[]> = {
   claude: nativeClaude,
   codex: nativeCodex,
+  commandcode: nativeCommandCode,
   opencode: nativeOpenCode,
   // OpenDesign has no usage route; a payload can never reach this.
   opendesign: () => [],
@@ -324,6 +373,11 @@ const PI_USAGE_PICKERS: Partial<
 > = {
   claude: (p, data) => p.parseAnthropicUsage(data),
   codex: (p, data) => p.parseCodexUsage(data),
+  // Command Code is intentionally absent: pi-usage's `parseCommandCodeUsage`
+  // takes the *normalized* object its own client builds (windowLimits as an
+  // array, plus a derived "Monthly Budget" row), not the raw `/alpha/billing`
+  // payload this adapter fetches. Passing raw JSON would throw and silently
+  // fall back, so the native parser below is the single implementation.
   opencode: (p, data) => p.parseOpenCodeGoUsage(data),
   zai: (p, data) => p.parseZaiUsage(data),
   minimax: (p, data) => p.parseMiniMaxUsage(data),

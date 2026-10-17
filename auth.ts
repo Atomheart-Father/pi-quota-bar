@@ -121,6 +121,29 @@ function resolveCodex(): AuthResult {
   return { ok: false, kind: "unconfigured", reason: "no Codex credential" };
 }
 
+/**
+ * Command Code.
+ *
+ * Two auth entries can exist because the deleted community plugin stored one
+ * under `commandcode` while the official provider uses `command-code`; both
+ * carry the same personal API key, so either works. Some hosts also expose a
+ * literal variable *name* as the key, which is rejected rather than sent.
+ */
+function resolveCommandCode(): AuthResult {
+  const placeholders = new Set(["CMD_API_KEY", "COMMAND_CODE_API_KEY", "$CMD_API_KEY"]);
+  const candidates = [
+    process.env.CMD_API_KEY?.trim(),
+    process.env.COMMAND_CODE_API_KEY?.trim(),
+    apiKey("command-code"),
+    apiKey("commandcode"),
+  ];
+  for (const candidate of candidates) {
+    if (!candidate || placeholders.has(candidate)) continue;
+    return { ok: true, secret: candidate };
+  }
+  return { ok: false, kind: "unconfigured", reason: "no Command Code credential" };
+}
+
 function resolveOpenCode(): AuthResult {
   const envFirst = process.env.OPENCODE_GO_API_KEY?.trim();
   if (envFirst) return { ok: true, secret: envFirst };
@@ -195,6 +218,8 @@ export function resolveAuth(provider: QuotaProviderId): AuthResult {
         return resolveClaude();
       case "codex":
         return resolveCodex();
+      case "commandcode":
+        return resolveCommandCode();
       case "opencode":
         return resolveOpenCode();
       case "opendesign":

@@ -6,9 +6,6 @@
  *
  * Adding a subscription means one registry entry plus one adapter here — the
  * fetch loop, cache, backoff, rendering and commands are provider-agnostic.
- *
- * Command Code / GOAT is intentionally not an adapter: `commandcode-go-for-pi`
- * owns that provider, its auth, its failover and its own `cc-quota` widget.
  */
 
 import type { AdapterOutcome, BarWindow, QuotaProviderId } from "./types.ts";
@@ -104,6 +101,43 @@ const REQUESTS: Record<
         [secret],
       ),
   },
+  commandcode: {
+    origin: "https://api.commandcode.ai",
+    // Command Code needs a composite request: `whoami` supplies the account,
+    // and the per-personal-account endpoints reject an `orgId` parameter
+    // outright (400 Invalid UUID), so it is only sent when a real org exists.
+    // Credits and subscription are fetched together, then the usage summary is
+    // scoped to the subscription's own start — unscoped, it returns lifetime
+    // totals and a monthly percentage would be meaningless.
+    request: async ({ secret }, signal) => {
+      const headers = { Authorization: `Bearer ${secret}` };
+      const base = "https://api.commandcode.ai";
+      const whoami = await getJson(`${base}/alpha/whoami`, headers, signal, [secret]);
+      const orgId = commandCodeOrgId(whoami);
+      const withOrg = (path: string): string =>
+        orgId ? `${base}${path}?orgId=${encodeURIComponent(orgId)}` : `${base}${path}`;
+
+      const [credits, subscription] = await Promise.all([
+        getJson(withOrg("/alpha/billing/credits"), headers, signal, [secret]),
+        getJson(withOrg("/alpha/billing/subscriptions"), headers, signal, [secret]).catch(
+          () => null,
+        ),
+      ]);
+
+      // Summary and subscription are both best-effort: the window limits above
+      // are the load-bearing numbers, and they survive either failing.
+      const periodStart = commandCodePeriodStart(subscription);
+      const since = periodStart ? `?since=${encodeURIComponent(periodStart)}` : "";
+      const summary = await getJson(
+        `${base}/alpha/usage/summary${since}`,
+        headers,
+        signal,
+        [secret],
+      ).catch(() => null);
+
+      return { whoami, credits, subscription, summary };
+    },
+  },
   opencode: {
     origin: "https://opencode.ai",
     request: ({ secret }, signal) =>
@@ -142,6 +176,34 @@ const REQUESTS: Record<
       ),
   },
 };
+
+/**
+ * Command Code returns `{ org: { id } }` for team accounts and `org: null` for
+ * personal ones. Only a real id may be passed as `orgId`.
+ */
+function commandCodeOrgId(whoami: unknown): string | undefined {
+  if (!whoami || typeof whoami !== "object") return undefined;
+  const org = (whoami as { org?: unknown }).org;
+  if (!org || typeof org !== "object") return undefined;
+  const id = (org as { id?: unknown }).id;
+  return typeof id === "string" && id.length > 0 ? id : undefined;
+}
+
+/**
+ * The billing period start, used to scope the usage summary.
+ *
+ * Without it the summary endpoint returns lifetime totals, which would make a
+ * monthly percentage meaningless.
+ */
+function commandCodePeriodStart(subscription: unknown): string | undefined {
+  if (!subscription || typeof subscription !== "object") return undefined;
+  const data = (subscription as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return undefined;
+  const start = (data as { currentPeriodStart?: unknown }).currentPeriodStart;
+  if (typeof start === "string" && start.length > 0) return start;
+  if (typeof start === "number" && Number.isFinite(start)) return new Date(start).toISOString();
+  return undefined;
+}
 
 export const ADAPTERS: readonly Adapter[] = PROVIDER_DESCRIPTORS.map((descriptor) => ({
   id: descriptor.id,

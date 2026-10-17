@@ -5,7 +5,7 @@ subscriptions in [pi](https://github.com/earendil-works/pi). No `/usage` needed,
 no dashboard, no wrapping.
 
 ```
-⌁ Claude 5h 12% ↺3h 7d 42% ↺4d │ ▸ Codex 5h 14% ↺2h 7d 9% ↺6d │ OC 5h 1% ↺1h 7d 24% │ Z.AI 5h 0% 7d 100% ↺21h │ MM 5h 2% ↺5h 7d 69% ↺3d
+⌁ Claude 5h 12% ↺3h 7d 42% ↺4d │ ▸ CMD 5h 2% ↺4h 7d 15% ↺5d │ OC 5h 1% ↺1h 7d 24% │ Z.AI 5h 0% 7d 100% ↺21h │ MM 5h 2% ↺5h 7d 69% ↺3d
 ```
 
 The `▸` marks the provider your current model belongs to. Each provider can be
@@ -17,16 +17,34 @@ toggled on and off individually.
 |---|---|
 | Claude Pro/Max | `api.anthropic.com/api/oauth/usage` |
 | ChatGPT / Codex | `chatgpt.com/backend-api/wham/usage` |
+| Command Code | `api.commandcode.ai/alpha/billing/credits` |
 | OpenCode Go | `opencode.ai/zen/go/v1/usage` |
 | Z.AI / GLM Coding Plan | `open.bigmodel.cn/api/monitor/usage/quota/limit` |
 | MiniMax Coding Plan | `api.minimaxi.com/v1/token_plan/remains` |
 | OpenDesign Go | no control-plane usage API — see below |
 
-**Command Code / GOAT is out of scope on purpose.** `commandcode-go-for-pi`
-owns that provider end to end — model calls, auth, failover, usage queries and
-its own `cc-quota` widget. This extension never queries Command Code, never
-renders it, and never touches the `cc-quota` widget. The two systems run side by
-side without coordinating.
+Command Code is read through its own control-plane API using the API key
+`pi /login` already stored. This extension never registers a provider and never
+routes a model call, so it cannot affect Command Code requests. The old
+`commandcode-go-for-pi` plugin is not required and no longer exists.
+
+## How Command Code is measured
+
+Command Code's allowance is denominated in **credits**, not requests, so the bar
+reports `used / cap` as a percentage:
+
+```
+CMD 5h 2% ↺4h 7d 15% ↺5d        # /subs status shows (0/14) and (5/35)
+```
+
+The two windows are the API's own `fiveHour` and `weekly` limits. There is
+deliberately **no monthly row**: `monthlyCredits` is a credit grant, not a spend
+ceiling, so a "monthly %" would be a number this extension invented.
+
+Two account shapes exist and both work. A team account returns an `org.id`,
+which is passed as `orgId`; a personal account returns `org: null`, and in that
+case sending `orgId` at all is rejected by the API (`400 Invalid UUID`), so it is
+omitted.
 
 ## Why OpenDesign shows `—`
 
@@ -77,6 +95,9 @@ Its `/usage` dashboard, `/tokens` and per-provider commands keep working.
 | `/subs status` | Full detail: every window, counts, resets, errors |
 | `/subs providers` | Interactive menu — toggle each provider on/off |
 | `/subs on <provider>` / `/subs off <provider>` | Toggle one provider without a dialog |
+
+The name in a toggle accepts any spelling: the id (`commandcode`), the short
+label (`CMD`) or the Pi provider id (`command-code`).
 | `/subs on` / `/subs off` | Enable/disable the whole bar |
 
 Every provider can be switched on and off individually, and the choice is

@@ -1,14 +1,14 @@
 /**
  * Unified subscription quota bar for Pi.
  *
- * Renders ONE line covering: Claude, Codex, OpenCode Go, OpenDesign Go,
- * Z.AI / GLM Coding Plan and MiniMax Coding Plan.
+ * Renders ONE line covering: Claude, Codex, Command Code, OpenCode Go,
+ * OpenDesign Go, Z.AI / GLM Coding Plan and MiniMax Coding Plan.
  *
- * Scope boundary — Command Code / GOAT is deliberately NOT handled here.
- * `commandcode-go-for-pi` owns that provider end to end (auth, model calls,
- * failover, usage queries and its own `cc-quota` widget). This extension never
- * queries Command Code, never renders it, and never touches the `cc-quota`
- * widget, so the two systems cannot interfere.
+ * Command Code is read here through its own control-plane API
+ * (`api.commandcode.ai/alpha/…`), which is independent of model calls: this
+ * extension never registers a provider, never routes a request, and only reads
+ * usage with the already-stored key. The community `commandcode-go-for-pi`
+ * plugin was removed, and nothing here depends on it.
  *
  * Design notes:
  *   - Providers without a credential are hidden entirely, so an unconfigured
@@ -41,6 +41,27 @@ const MAX_BACKOFF_STEPS = 4;
 const LABELS: Record<QuotaProviderId, string> = Object.fromEntries(
   PROVIDER_DESCRIPTORS.map((descriptor) => [descriptor.id, descriptor.label]),
 ) as Record<QuotaProviderId, string>;
+
+/**
+ * Resolve a user-supplied provider name.
+ *
+ * Accepts the bar id (`commandcode`), the short label (`CMD`) and any Pi
+ * provider id the subscription maps to (`command-code`), so the answer to
+ * "what do I type" is never surprising.
+ */
+function resolveProviderName(name: string): QuotaProviderId | undefined {
+  const needle = name.trim().toLowerCase();
+  if (!needle) return undefined;
+  return (
+    PROVIDER_ORDER.find((id) => id === needle) ??
+    PROVIDER_DESCRIPTORS.find((d) => d.label.toLowerCase() === needle)?.id ??
+    PROVIDER_DESCRIPTORS.find((d) => d.piProviders.includes(needle))?.id ??
+    PROVIDER_DESCRIPTORS.find((d) => d.longLabel.toLowerCase() === needle)?.id ??
+    // Prefix match last, so `cla` -> claude still works but never beats an
+    // exact id or alias above.
+    PROVIDER_ORDER.find((id) => id.startsWith(needle))
+  );
+}
 
 function createController(pi: ExtensionAPI) {
   let config: QuotaBarConfig = { ...DEFAULT_CONFIG, providers: { ...DEFAULT_CONFIG.providers } };
@@ -411,9 +432,7 @@ export default async function (pi: ExtensionAPI) {
       const toggle = /^(on|off)\s+(.+)$/.exec(arg);
       if (toggle) {
         const [, verb, name] = toggle;
-        const id = PROVIDER_ORDER.find(
-          (candidate) => candidate === name || LABELS[candidate].toLowerCase() === name || LABELS[candidate].toLowerCase().startsWith(name ?? ""),
-        );
+        const id = resolveProviderName(name ?? "");
         if (!id) {
           report(`Unknown provider "${name}". Try: ${PROVIDER_ORDER.join(", ")}`);
           return;
