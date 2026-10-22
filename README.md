@@ -5,7 +5,7 @@ subscriptions in [pi](https://github.com/earendil-works/pi). No `/usage` needed,
 no dashboard, no wrapping.
 
 ```
-⌁ Claude 5h 12% ↺3h 7d 42% ↺4d │ ▸ CMD 5h 2% ↺4h 7d 15% ↺5d │ OC 5h 1% ↺1h 7d 24% │ Z.AI 5h 0% 7d 100% ↺21h │ MM 5h 2% ↺5h 7d 69% ↺3d
+⌁ Codex 5h 25% ↺3h 7d 42% ↺4d │ ▸ CMD 5h 2% ↺4h 7d 15% ↺5d │ OC 5h 1% ↺1h 7d 24% │ Z.AI 5h 0% 7d 100% ↺21h │ MM 5h 2% ↺5h 7d 69% ↺3d
 ```
 
 The `▸` marks the provider your current model belongs to. Each provider can be
@@ -15,7 +15,6 @@ toggled on and off individually.
 
 | Subscription | Source |
 |---|---|
-| Claude Pro/Max | `api.anthropic.com/api/oauth/usage` |
 | ChatGPT / Codex | `chatgpt.com/backend-api/wham/usage` |
 | Command Code | `api.commandcode.ai/alpha/billing/credits` |
 | OpenCode Go | `opencode.ai/zen/go/v1/usage` |
@@ -77,8 +76,8 @@ The only prerequisite is that each subscription is already logged in through
 
 ### Avoid a duplicate footer
 
-`@kaishin/pi-usage` also renders a single-provider quota footer. If you have it
-installed, turn its footer off so only one bar shows:
+If you have `@kaishin/pi-usage` installed, its footer would duplicate this bar.
+Turn that footer off so only one line shows:
 
 ```json
 // ~/.pi/agent/extensions/usage.json
@@ -108,7 +107,7 @@ entirely — it is not merely hidden.
 redraws, so several can be changed in one visit:
 
 ```
-✓  Claude  —  ok (0m ago)
+✓  Codex  —  ok (0m ago)
 ✓  Codex  —  ok (0m ago)
 ✗  OC  —  not queried
 ```
@@ -122,7 +121,7 @@ redraws, so several can be changed in one visit:
   "placement": "aboveEditor",
   "showNoData": true,
   "providers": {
-    "claude": true, "codex": true, "opencode": true,
+    "codex": true, "commandcode": true, "opencode": true,
     "opendesign": true, "zai": true, "minimax": true
   }
 }
@@ -156,12 +155,9 @@ redraws, so several can be changed in one visit:
 
 ## Data sources and caching
 
-Number sources, in order of preference:
-
-1. **`@kaishin/pi-usage`'s parsers**, imported by absolute path at startup, so
-   each provider keeps one maintained implementation and the two extensions
-   cannot drift apart.
-2. A compact native fallback, used only if that import is unavailable.
+Every provider's payload is normalized by `parsers.ts` alone. Nothing is
+delegated to another extension, so uninstalling or renaming one cannot blank
+the bar.
 
 Only derived numbers are cached, in `~/.pi/agent/quota-bar-cache.json`
 (mode `0600`): percentages, counts, reset timestamps. No credential, token,
@@ -181,14 +177,11 @@ the ChatGPT usage endpoint authorizes the account that owns the subscription and
 a Pi-level `openai` token can belong to an account the endpoint rejects with
 401.
 
-## Disabling pi-usage's own footer
+## Coexisting with other usage extensions
 
-`@kaishin/pi-usage` also renders a quota footer, which would duplicate this bar.
-It is disabled in `~/.pi/agent/extensions/usage.json`:
-
-```json
-{ "usageStatus": false }
-```
+Any extension that draws its own quota footer or status row will duplicate this
+bar. Turn that one off rather than this one. For `@kaishin/pi-usage` that is
+`{ "usageStatus": false }` in `~/.pi/agent/extensions/usage.json`.
 
 Its `/usage` dashboard, `/tokens` and provider commands are untouched — set
 `"usageStatus": true` to bring the single-provider footer back.
@@ -205,12 +198,11 @@ an exhausted window, unconfigured providers, and a spread of terminal widths.
 
 ## Credits
 
-Response parsing is reused from
+Response parsing was originally adapted from
 [`@kaishin/pi-usage`](https://www.npmjs.com/package/@kaishin/pi-usage) (MIT),
 which in turn descends from `@latentminds/pi-quotas` and `@narumitw/pi-usage`.
-Importing its parsers rather than copying them keeps one maintained
-implementation per provider. A native fallback covers the case where it is not
-installed.
+It now lives in this repository so the bar has no runtime dependency on another
+extension.
 
 MiniMax endpoint semantics follow
 [`pi-show-minimax-quota`](https://www.npmjs.com/package/pi-show-minimax-quota)

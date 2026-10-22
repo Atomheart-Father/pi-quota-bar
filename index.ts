@@ -1,7 +1,7 @@
 /**
  * Unified subscription quota bar for Pi.
  *
- * Renders ONE line covering: Claude, Codex, Command Code, OpenCode Go,
+ * Renders ONE line covering: Codex, Command Code, OpenCode Go,
  * OpenDesign Go, Z.AI / GLM Coding Plan and MiniMax Coding Plan.
  *
  * Command Code is read here through its own control-plane API
@@ -25,7 +25,6 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { ADAPTERS, fetchProvider } from "./adapters.ts";
 import { cacheAgeLabel, loadCache, saveCache } from "./cache.ts";
 import { DEFAULT_CONFIG, PROVIDER_ORDER, loadConfig, saveConfig, type QuotaBarConfig } from "./config.ts";
-import { primeParsers } from "./parsers.ts";
 import { PROVIDER_DESCRIPTORS } from "./registry.ts";
 import { renderBarLine, renderDetail, renderSummary, type RenderInput } from "./render.ts";
 import type { ProviderRecord, QuotaProviderId } from "./types.ts";
@@ -57,7 +56,7 @@ function resolveProviderName(name: string): QuotaProviderId | undefined {
     PROVIDER_DESCRIPTORS.find((d) => d.label.toLowerCase() === needle)?.id ??
     PROVIDER_DESCRIPTORS.find((d) => d.piProviders.includes(needle))?.id ??
     PROVIDER_DESCRIPTORS.find((d) => d.longLabel.toLowerCase() === needle)?.id ??
-    // Prefix match last, so `cla` -> claude still works but never beats an
+    // Prefix match last, so `co` -> codex still works but never beats an
     // exact id or alias above.
     PROVIDER_ORDER.find((id) => id.startsWith(needle))
   );
@@ -359,10 +358,6 @@ function createController(pi: ExtensionAPI) {
 export default async function (pi: ExtensionAPI) {
   const controller = createController(pi);
   controller.load();
-
-  // Load pi-usage's parsers once, so a provider's payload is normalized by the
-  // same maintained code the rest of the ecosystem uses.
-  await primeParsers().catch(() => undefined);
 
   /**
    * Interactive per-provider menu.

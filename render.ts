@@ -5,10 +5,10 @@
  * too narrow it compacts in tiers rather than wrapping or replacing the chat
  * area with a panel:
  *
- *   tier 0  ⌁ Claude 5h 7% ↺2h 7d 42% ↺4d │ ▸ Codex 5h 25% ↺2h 7d 76% ↺4d
- *   tier 1  ⌁ Claude 5h 7% 7d 42% │ ▸ Codex 5h 25% 7d 76%
- *   tier 2  ⌁ Claude 5h 7% │ ▸ Codex 5h 25%
- *   tier 3  ⌁ Claude 7% │ ▸ Codex 25%
+ *   tier 0  ⌁ Codex 5h 7% ↺2h 7d 42% ↺4d │ ▸ CMD 5h 25% ↺2h 7d 76% ↺4d
+ *   tier 1  ⌁ Codex 5h 7% 7d 42% │ ▸ CMD 5h 25% 7d 76%
+ *   tier 2  ⌁ Codex 5h 7% │ ▸ CMD 5h 25%
+ *   tier 3  ⌁ Codex 7% │ ▸ CMD 25%
  *
  * Only if every tier still overflows are trailing providers dropped. The active
  * provider is never dropped, so the ▸ highlight cannot vanish.

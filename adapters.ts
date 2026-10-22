@@ -71,20 +71,6 @@ const REQUESTS: Record<
   QuotaProviderId,
   { origin: string; request: Adapter["request"] }
 > = {
-  claude: {
-    origin: "https://api.anthropic.com",
-    request: ({ secret }, signal) =>
-      getJson(
-        "https://api.anthropic.com/api/oauth/usage",
-        {
-          Authorization: `Bearer ${secret}`,
-          "anthropic-beta": "oauth-2025-04-20",
-          "user-agent": "pi-quota-bar",
-        },
-        signal,
-        [secret],
-      ),
-  },
   codex: {
     origin: "https://chatgpt.com",
     request: ({ secret, extra }, signal) =>

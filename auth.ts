@@ -56,39 +56,6 @@ function authPath(): string {
 }
 
 /**
- * Claude Pro/Max subscription usage.
- *
- * The usage endpoint is OAuth-only. A direct API key (`sk-ant-api…`) authorizes
- * model calls but has no subscription windows, so it is reported as
- * not-applicable rather than as a failure — the same distinction the upstream
- * pi-usage extension draws.
- */
-function resolveClaude(): AuthResult {
-  const oauth = oauthAccess("anthropic");
-  if (!oauth) {
-    const direct = apiKey("anthropic");
-    if (direct) {
-      return {
-        ok: false,
-        kind: "not_applicable",
-        reason: "direct Anthropic API key — no subscription usage",
-      };
-    }
-    return { ok: false, kind: "unconfigured", reason: "no Claude credential" };
-  }
-  if (oauth.access.startsWith("sk-ant-api")) {
-    return {
-      ok: false,
-      kind: "not_applicable",
-      reason: "direct Anthropic API key — no subscription usage",
-    };
-  }
-  // An expired access token is still sent: Pi refreshes it on the next model
-  // call, and a 401 here is reported as a plain error rather than a guess.
-  return { ok: true, secret: oauth.access };
-}
-
-/**
  * Codex / ChatGPT subscription usage.
  *
  * Two credential sources exist and they are NOT interchangeable: the ChatGPT
@@ -214,8 +181,6 @@ function resolveMiniMax(): AuthResult {
 export function resolveAuth(provider: QuotaProviderId): AuthResult {
   try {
     switch (provider) {
-      case "claude":
-        return resolveClaude();
       case "codex":
         return resolveCodex();
       case "commandcode":

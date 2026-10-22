@@ -1,14 +1,13 @@
 {
   "name": "pi-quota-bar",
   "version": "1.0.0",
-  "description": "One always-visible line showing the real server-side usage of your Claude, Codex, OpenCode Go, OpenDesign, Z.AI and MiniMax subscriptions in pi.",
+  "description": "One always-visible line showing the real server-side usage of your Codex, Command Code, OpenCode Go, OpenDesign, Z.AI and MiniMax subscriptions in pi.",
   "keywords": [
     "pi-package",
     "pi-extension",
     "quota",
     "usage",
     "subscription",
-    "claude",
     "codex",
     "opencode",
     "zai",

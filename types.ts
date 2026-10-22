@@ -1,11 +1,10 @@
 /**
  * Shared types for the unified subscription quota bar.
  *
- * Scope: Claude, Codex, Command Code, OpenCode Go, OpenDesign Go, Z.AI, MiniMax.
+ * Scope: Codex, Command Code, OpenCode Go, OpenDesign Go, Z.AI, MiniMax.
  */
 
 export type QuotaProviderId =
-  | "claude"
   | "codex"
   | "commandcode"
   | "opencode"
@@ -17,7 +16,7 @@ export type QuotaProviderId =
 export interface BarWindow {
   /** Compact cross-provider label: `5h`, `7d`, `30d`. */
   label: string;
-  /** Percent *used* (0-100), matching the pi-usage/pi-subs convention. */
+  /** Percent *used* (0-100), the convention the rest of the ecosystem uses. */
   usedPercent: number;
   /** Epoch ms. Absent when the provider does not report a reset. */
   resetsAt?: number;

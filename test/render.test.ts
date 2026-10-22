@@ -28,7 +28,7 @@ function record(partial: Partial<ProviderRecord> & Pick<ProviderRecord, "outcome
   return { failureStreak: 0, ...partial };
 }
 
-const okClaude = record({
+const okZai = record({
   outcome: {
     kind: "ok",
     windows: [
@@ -62,8 +62,8 @@ function build(records: Partial<Record<QuotaProviderId, ProviderRecord>>, curren
 }
 
 test("renders all configured providers on one line", () => {
-  const line = stripAnsi(renderBarLine(build({ claude: okClaude, codex: okCodex }, "anthropic"), 400));
-  assert.match(line, /Claude 5h 12%/);
+  const line = stripAnsi(renderBarLine(build({ zai: okZai, codex: okCodex }, "zai-coding-cn"), 400));
+  assert.match(line, /Z\.AI 5h 12%/);
   assert.match(line, /7d 42%/);
   assert.match(line, /Codex 5h 7% 7d 23%/);
   assert.equal(line.includes("\n"), false, "must be a single line");
@@ -76,19 +76,19 @@ test("untimed rows never leak into the compact bar", () => {
 
 test("stale last-good data keeps its numbers and is marked", () => {
   const stale = record({
-    outcome: okClaude.outcome,
+    outcome: okZai.outcome,
     fetchedAt: Date.now() - 20 * 60_000,
     staleReason: "HTTP 503",
   });
-  const line = stripAnsi(renderBarLine(build({ claude: stale }), 400));
-  assert.match(line, /Claude 5h 12%/, "real numbers are preserved");
+  const line = stripAnsi(renderBarLine(build({ zai: stale }), 400));
+  assert.match(line, /Z\.AI 5h 12%/, "real numbers are preserved");
   assert.match(line, /⌛/, "marked stale rather than blanked");
 });
 
 test("an error with no last-good data shows a compact marker", () => {
   const broken: ProviderRecord = { outcome: { kind: "error", reason: "timeout" }, failureStreak: 2 };
-  const line = stripAnsi(renderBarLine(build({ claude: broken }), 400));
-  assert.match(line, /Claude ✗/);
+  const line = stripAnsi(renderBarLine(build({ zai: broken }), 400));
+  assert.match(line, /Z\.AI ✗/);
 });
 
 test("unavailable provider is marked but never invents numbers", () => {
@@ -102,7 +102,7 @@ test("unconfigured providers are hidden entirely", () => {
   const line = stripAnsi(
     renderBarLine(
       build({
-        claude: okClaude,
+        zai: okZai,
         codex: record({ outcome: { kind: "unconfigured", reason: "no credential" } }),
       }),
       400,
@@ -112,16 +112,16 @@ test("unconfigured providers are hidden entirely", () => {
 });
 
 test("active provider is highlighted only when it has data", () => {
-  const line = renderBarLine(build({ claude: okClaude, codex: okCodex }, "opencode-go"), 400);
-  assert.equal(stripAnsi(line).includes("▸ Claude"), false, "no highlight for an unrelated provider");
-  const yes = renderBarLine(build({ claude: okClaude, codex: okCodex }, "anthropic"), 400);
-  assert.match(stripAnsi(yes), /▸ Claude/);
+  const line = renderBarLine(build({ zai: okZai, codex: okCodex }, "opencode-go"), 400);
+  assert.equal(stripAnsi(line).includes("▸ Z.AI"), false, "no highlight for an unrelated provider");
+  const yes = renderBarLine(build({ zai: okZai, codex: okCodex }, "zai-coding-cn"), 400);
+  assert.match(stripAnsi(yes), /▸ Z\.AI/);
   assert.match(yes, /\u001b\[1m/, "active label is bold");
 });
 
 test("the line never exceeds the available width", () => {
   const records = {
-    claude: okClaude,
+    zai: okZai,
     codex: okCodex,
     opendesign: record({ outcome: { kind: "unavailable", reason: "none" } }),
   };
@@ -138,7 +138,7 @@ test("the line never exceeds the available width", () => {
 });
 
 test("narrow terminals drop detail before dropping providers", () => {
-  const records = { claude: okClaude, codex: okCodex };
+  const records = { zai: okZai, codex: okCodex };
   const wide = stripAnsi(renderBarLine(build(records), 200));
   const mid = stripAnsi(renderBarLine(build(records), 46));
   // Wide: resets present. Mid: resets dropped, window labels kept.
@@ -151,16 +151,16 @@ test("narrow terminals drop detail before dropping providers", () => {
   const bothWidth = visibleWidth(stripAnsi(renderBarLine(build(records), 24)));
   const narrow = stripAnsi(renderBarLine(build(records), bothWidth));
   assert.equal(narrow.includes("5h"), false, "labels drop before providers");
-  assert.match(narrow, /Claude 12%/);
+  assert.match(narrow, /Z\.AI 12%/);
   assert.match(narrow, /Codex 7%/);
   void tier3;
 });
 
 test("providers drop cleanly rather than truncating mid-name", () => {
-  const line = stripAnsi(renderBarLine(build({ claude: okClaude, codex: okCodex }), 12));
+  const line = stripAnsi(renderBarLine(build({ zai: okZai, codex: okCodex }), 12));
   // A single provider survives intact; no half-written provider name.
-  assert.match(line, /Claude/);
-  assert.equal(line.includes("Cod"), false, "never emits a partial provider label");
+  assert.match(line, /Codex|Z\.AI/);
+  assert.equal(/Cod$|Z\.A$/.test(line), false, "never emits a partial provider label");
   assert.equal(line.includes("\u2026"), false, "no ellipsis inside a provider label");
 });
 
@@ -175,16 +175,16 @@ test("an exhausted window is surfaced over an idle short window", () => {
     },
     fetchedAt: Date.now(),
   });
-  const line = stripAnsi(renderBarLine(build({ claude: exhausted }), 40));
+  const line = stripAnsi(renderBarLine(build({ zai: exhausted }), 40));
   assert.match(line, /100%/, "the spent window is what fits");
   assert.match(line, /!/, "exhaustion is flagged");
 });
 
 test("detail view reports reasons and counts", () => {
-  const lines = renderDetail(build({ claude: okClaude, codex: okCodex }, "anthropic")).map(stripAnsi);
+  const lines = renderDetail(build({ zai: okZai, codex: okCodex }, "zai-coding-cn")).map(stripAnsi);
   const text = lines.join("\n");
-  assert.match(text, /Claude Pro\/Max/);
-  assert.match(text, /▸ Claude Pro\/Max/, "active provider highlighted in detail");
+  assert.match(text, /Z\.AI \/ GLM Coding Plan/);
+  assert.match(text, /▸ Z\.AI \/ GLM Coding Plan/, "active provider highlighted in detail");
   assert.match(text, /Spend cap/, "detail keeps untimed rows");
 });
 
@@ -238,8 +238,8 @@ const okCommandCode = record({
 });
 
 test("command code renders between codex and opencode", () => {
-  const line = stripAnsi(renderBarLine(build({ claude: okClaude, codex: okCodex, commandcode: okCommandCode }), 0));
-  const order = ["Claude", "Codex", "CMD"].map((label) => line.indexOf(label));
+  const line = stripAnsi(renderBarLine(build({ zai: okZai, codex: okCodex, commandcode: okCommandCode }), 0));
+  const order = ["Codex", "CMD"].map((label) => line.indexOf(label));
   assert.ok(order.every((index) => index >= 0), `all labels present in ${line}`);
   assert.deepEqual([...order].sort((a, b) => a - b), order, "display order is stable");
 });
@@ -247,13 +247,13 @@ test("command code renders between codex and opencode", () => {
 test("command code uses the CMD label, never CC", () => {
   const line = stripAnsi(renderBarLine(build({ commandcode: okCommandCode }), 0));
   assert.match(line, /CMD/);
-  assert.doesNotMatch(line, /\bCC\b/, "CC is reserved to avoid clashing with Claude");
+  assert.doesNotMatch(line, /\bCC\b/, "CC is never used as the Command Code label");
 });
 
 test("command code highlights when the active model is command-code", () => {
   const active = stripAnsi(renderBarLine(build({ commandcode: okCommandCode }, "command-code"), 0));
   assert.match(active, /▸ CMD/);
-  const inactive = stripAnsi(renderBarLine(build({ commandcode: okCommandCode }, "anthropic"), 0));
+  const inactive = stripAnsi(renderBarLine(build({ commandcode: okCommandCode }, "zai-coding-cn"), 0));
   assert.doesNotMatch(inactive, /▸ CMD/);
 });
 

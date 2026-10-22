@@ -22,12 +22,6 @@ export interface ProviderDescriptor {
 
 export const PROVIDER_DESCRIPTORS: readonly ProviderDescriptor[] = [
   {
-    id: "claude",
-    label: "Claude",
-    longLabel: "Claude Pro/Max",
-    piProviders: ["anthropic", "anthropic-claude"],
-  },
-  {
     id: "codex",
     label: "Codex",
     longLabel: "ChatGPT / Codex",
@@ -35,8 +29,8 @@ export const PROVIDER_DESCRIPTORS: readonly ProviderDescriptor[] = [
   },
   {
     id: "commandcode",
-    // "CMD" rather than "CC": in a line that already starts with "Claude",
-    // two C-initials would be unreadable at a glance.
+    // "CMD" rather than "CC": two C-initials read as an abbreviation of
+    // something else, so the label spells out the product instead.
     label: "CMD",
     longLabel: "Command Code",
     piProviders: ["command-code", "commandcode"],

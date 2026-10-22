@@ -30,7 +30,6 @@ export const DEFAULT_CONFIG: QuotaBarConfig = {
   placement: "aboveEditor",
   showNoData: true,
   providers: {
-    claude: true,
     codex: true,
     commandcode: true,
     opencode: true,
@@ -91,7 +90,6 @@ export function saveConfig(config: QuotaBarConfig): void {
 
 /** The order providers appear in the bar. */
 export const PROVIDER_ORDER: readonly QuotaProviderId[] = [
-  "claude",
   "codex",
   "commandcode",
   "opencode",
